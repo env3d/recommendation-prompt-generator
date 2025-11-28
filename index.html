@@ -10,6 +10,40 @@
     margin: 2rem;
     background-color: #f7f7f7;
   }
+  h1 {
+    margin-bottom: 0.5rem;
+  }
+  #githubLink {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+  #githubLink a {
+    color: #007acc;
+    text-decoration: none;
+  }
+  #githubLink a:hover {
+    text-decoration: underline;
+  }
+  #candidateInfo {
+    font-size: 1.2rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Two-column layout for desktop */
+  @media (min-width: 768px) {
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    #outputSection {
+      position: sticky;
+      top: 2rem;
+      align-self: start;
+    }
+  }
+  
   label {
     display: block;
     margin-top: 1rem;
@@ -43,76 +77,101 @@
     border-radius: 5px;
     white-space: pre-wrap;
     border: 1px solid #ccc;
+    min-height: 200px;
+  }
+  #copyButton {
+    margin-top: 1rem;
   }
 </style>
 </head>
 <body>
 
-<h1>Recommendation Letter Prompt Generator</h1>
+<h1>Recommendation Letter Prompt Generator
+<div id="githubLink">
+  <a href="https://github.com/env3d/recommendation-prompt-generator" target="_blank">View on GitHub</a>
+</div>
+</h1>
+<div id="candidateInfo"></div>
 
-<form id="recForm">
-  <label>Recommender Name
-    <input type="text" id="recommenderName" required>
-  </label>
+<div class="container">
+  <div id="formSection">
+    <form id="recForm">
+      <label>Recommender Name
+        <input type="text" id="recommenderName" required>
+      </label>
 
-  <label>Position / Role
-    <input type="text" id="position" required>
-  </label>
+      <label>Position / Role
+        <input type="text" id="position" required>
+      </label>
 
-  <label>Institution / Organization
-    <input type="text" id="institution" required>
-  </label>
+      <label>Institution / Organization
+        <input type="text" id="institution" required>
+      </label>
 
-  <label>Length of acquaintance
-    <input type="text" id="length" placeholder="e.g., 3 years" required>
-  </label>
+      <label>Length of acquaintance
+        <input type="text" id="length" placeholder="e.g., 3 years" required>
+      </label>
 
-  <label>Context of interaction
-    <select id="interactionContext" multiple>
-      <option value="teaching">We taught together in the same department</option>
-      <option value="research">Worked on Project together</option>
-      <option value="mentorship">Candidate was my mentor/teacher</option>
-      <option value="mentorship">I taught/mentored the candidate</option>
-      <option value="other">We collaborated in other ways</option>
-    </select>
-  </label>
+      <label>Context of interaction
+        <select id="interactionContext" multiple>
+          <option value="teaching">We taught together in the same department</option>
+          <option value="research">Worked on Project together</option>
+          <option value="mentorship">Candidate was my mentor/teacher</option>
+          <option value="mentorship">I taught/mentored the candidate</option>
+          <option value="other">We collaborated in other ways</option>
+        </select>
+      </label>
 
-  <label>Additional context
-    <input type="text" id="interactionContextExtra" placeholder="e.g., course name, project title, dates">
-  </label>
+      <label>Additional context
+        <input type="text" id="interactionContextExtra" placeholder="e.g., course name, project title, dates">
+      </label>
 
-  <label>Notable qualities
-    <input type="text" id="qualities" placeholder="e.g., creativity, dedication" required>
-  </label>
+      <label>Notable qualities
+        <input type="text" id="qualities" placeholder="e.g., creativity, dedication" required>
+      </label>
 
-  <label>Greatest Strength
-    <input type="text" id="greatestStrength" placeholder="e.g., leadership, problem-solving" required>
-  </label>
+      <label>Greatest Strength
+        <input type="text" id="greatestStrength" placeholder="e.g., leadership, problem-solving" required>
+      </label>
 
-  <label>Recommendation strength
-    <select id="recommendationStrength">
-      <option value="without reservation">Without reservation</option>
-      <option value="strongly">Strongly</option>
-      <option value="enthusiastically">Enthusiastically</option>
-    </select>
-  </label>
+      <label>Recommendation strength
+        <select id="recommendationStrength">
+          <option value="without reservation">Without reservation</option>
+          <option value="strongly">Strongly</option>
+          <option value="enthusiastically">Enthusiastically</option>
+        </select>
+      </label>
 
-  <label>Additional Comments
-    <textarea id="additionalComments" rows="4" placeholder="Any additional remarks or context"></textarea>
-  </label>
+      <label>Additional Comments
+        <textarea id="additionalComments" rows="4" placeholder="Any additional remarks or context"></textarea>
+      </label>
+    </form>
+  </div>
 
-  <button type="button" onclick="generatePrompt()">Generate</button>
-  <button type="button" onclick="clearForm()">Clear All</button>
-</form>
-
-<div id="output"></div>
-<button id="copyButton" style="display: none;" onclick="copyToClipboard()">Copy</button>
+  <div id="outputSection">
+    <button type="button" onclick="generatePrompt()">Generate</button>
+    <button type="button" onclick="clearForm()">Clear All</button>
+    <div id="output"></div>
+    <button id="copyButton" style="display: none;" onclick="copyToClipboard()">Copy</button>
+  </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // Display candidate name and pronouns
+  displayCandidateInfo();
   // Load saved data from local storage
   loadFormData();
 });
+
+function displayCandidateInfo() {
+  const candidateName = getCandidateNameFromURL();
+  const pronouns = getPronounsFromURL();
+  const pronounLabel = `${pronouns.subject}/${pronouns.object}/${pronouns.possessiveDet}`;
+  
+  document.getElementById('candidateInfo').textContent = 
+    `Generating recommendation for: ${candidateName} (${pronounLabel})`;
+}
 
 function getCandidateNameFromURL() {
   const params = new URLSearchParams(window.location.search);
