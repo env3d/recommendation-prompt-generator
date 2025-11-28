@@ -10,9 +10,8 @@ This tool allows you to send a personalized link to someone writing you a recomm
 
 Send a link like this to your recommender:
 
-```
 https://env3d.github.io/recommendation-prompt-generator/?for=John%20Doe&pronoun=he
-```
+
 
 ### URL Parameters
 
