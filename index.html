@@ -69,11 +69,16 @@
 
   <label>Context of interaction
     <select id="interactionContext" multiple>
-      <option value="teaching">Teaching Colleague</option>
+      <option value="teaching">We taught together in the same department</option>
       <option value="research">Worked on Project together</option>
-      <option value="mentorship">He was my mentor</option>
+      <option value="mentorship">Candidate was my mentor/teacher</option>
+      <option value="mentorship">I taught/mentored the candidate</option>
       <option value="other">We collaborated in other ways</option>
     </select>
+  </label>
+
+  <label>Additional context
+    <input type="text" id="interactionContextExtra" placeholder="e.g., course name, project title, dates">
   </label>
 
   <label>Notable qualities
@@ -109,6 +114,25 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFormData();
 });
 
+function getCandidateNameFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const name = params.get('for');
+  return (name && name.trim()) ? name.trim() : 'the candidate';
+}
+
+// New: derive pronouns from URL (?pronoun=he|she|they)
+function getPronounsFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const p = (params.get('pronoun') || '').trim().toLowerCase();
+  switch (p) {
+    case 'he': return { subject: 'he', object: 'him', possessiveDet: 'his', possessive: 'his', reflexive: 'himself' };
+    case 'she': return { subject: 'she', object: 'her', possessiveDet: 'her', possessive: 'hers', reflexive: 'herself' };
+    case 'they':
+    default:
+      return { subject: 'they', object: 'them', possessiveDet: 'their', possessive: 'theirs', reflexive: 'themself' };
+  }
+}
+
 function saveFormData() {
   const formData = {
     recommenderName: document.getElementById('recommenderName').value,
@@ -116,6 +140,7 @@ function saveFormData() {
     institution: document.getElementById('institution').value,
     length: document.getElementById('length').value,
     interactionContext: Array.from(document.getElementById('interactionContext').selectedOptions).map(option => option.value),
+    interactionContextExtra: document.getElementById('interactionContextExtra').value,
     qualities: document.getElementById('qualities').value,
     greatestStrength: document.getElementById('greatestStrength').value,
     recommendationStrength: document.getElementById('recommendationStrength').value,
@@ -137,9 +162,12 @@ function loadFormData() {
     document.getElementById('additionalComments').value = savedData.additionalComments || '';
 
     const interactionContext = document.getElementById('interactionContext');
+    const selected = Array.isArray(savedData.interactionContext) ? savedData.interactionContext : [];
     Array.from(interactionContext.options).forEach(option => {
-      option.selected = savedData.interactionContext.includes(option.value);
+      option.selected = selected.includes(option.value);
     });
+
+    document.getElementById('interactionContextExtra').value = savedData.interactionContextExtra || '';
   }
 }
 
@@ -153,28 +181,64 @@ function clearForm() {
 function generatePrompt() {
   saveFormData(); // Save form data to local storage
 
+  const v = (id) => (document.getElementById(id).value || '').trim();
   const getSelectedValues = (id) => {
-    const options = document.getElementById(id).selectedOptions;
-    return Array.from(options).map(option => option.value).join(', ');
+    const opts = document.getElementById(id).selectedOptions;
+    return Array.from(opts).map(o => o.value).join(', ');
   };
 
-  const prompt = `Prompt for LLM: Generate a recommendation letter for Jason Madar using the information below. Make it professional, enthusiastic, and well-structured.\n
-Information to include:\n
-Recommender Details:\n
-  * Name: ${document.getElementById('recommenderName').value}
-  * Position / Role: ${document.getElementById('position').value}
-  * Institution / Organization: ${document.getElementById('institution').value}\n
-Relationship with Jason:\n
-  * Length of acquaintance: ${document.getElementById('length').value}
-  * Context of interaction: ${getSelectedValues('interactionContext')}\n
-Personal Qualities / Strengths:\n
-  * Notable qualities: ${document.getElementById('qualities').value}
-  * Greatest strength: ${document.getElementById('greatestStrength').value}\n
-Overall Assessment / Recommendation:\n
-  * Recommendation strength: ${document.getElementById('recommendationStrength').value}\n
-Additional Comments:\n
-  ${document.getElementById('additionalComments').value}\n
-Instruction to LLM: Compose a formal recommendation letter incorporating all the above details. Ensure it flows naturally, is enthusiastic without exaggeration, and is suitable for academic or professional contexts.`;
+  const candidateName = getCandidateNameFromURL();
+  const pronouns = getPronounsFromURL(); // { subject, object, possessiveDet, possessive, reflexive }
+
+  const sections = [];
+
+  // Recommender Details
+  const recLines = [];
+  if (v('recommenderName')) recLines.push(`  * Name: ${v('recommenderName')}`);
+  if (v('position')) recLines.push(`  * Position / Role: ${v('position')}`);
+  if (v('institution')) recLines.push(`  * Institution / Organization: ${v('institution')}`);
+  if (recLines.length) {
+    sections.push(`Recommender Details:\n${recLines.join('\n')}`);
+  }
+
+  // Relationship
+  const relLines = [];
+  if (v('length')) relLines.push(`  * Length of acquaintance: ${v('length')}`);
+  const context = getSelectedValues('interactionContext');
+  if (context) relLines.push(`  * Context of interaction: ${context}`);
+  if (v('interactionContextExtra')) relLines.push(`  * Additional context: ${v('interactionContextExtra')}`);
+  if (relLines.length) {
+    sections.push(`Relationship with ${candidateName}:\n${relLines.join('\n')}`);
+  }
+
+  // Personal Qualities / Strengths
+  const pqLines = [];
+  if (v('qualities')) pqLines.push(`  * Notable qualities: ${v('qualities')}`);
+  if (v('greatestStrength')) pqLines.push(`  * Greatest strength: ${v('greatestStrength')}`);
+  if (pqLines.length) {
+    sections.push(`Personal Qualities / Strengths:\n${pqLines.join('\n')}`);
+  }
+
+  // Overall Assessment / Recommendation
+  const assessLines = [];
+  if (v('recommendationStrength')) assessLines.push(`  * Recommendation strength: ${v('recommendationStrength')}`);
+  if (assessLines.length) {
+    sections.push(`Overall Assessment / Recommendation:\n${assessLines.join('\n')}`);
+  }
+
+  // Additional Comments
+  if (v('additionalComments')) {
+    sections.push(`Additional Comments:\n  ${v('additionalComments')}`);
+  }
+
+  const header = `Prompt for LLM: Generate a recommendation letter for ${candidateName} using the information below. Make it professional, enthusiastic, and well-structured.\n`;
+  const pronounGuide = `Use these pronouns for ${candidateName}: ${pronouns.subject}/${pronouns.object}/${pronouns.possessiveDet}.`;
+  const body = sections.join('\n\n');
+  const instruction = `\nInstruction to LLM: Compose a formal recommendation letter incorporating all the above details. Ensure it flows naturally, is enthusiastic without exaggeration, and is suitable for academic or professional contexts. ${pronounGuide}`;
+
+  const prompt = [header, 'Information to include:', '', body, instruction]
+    .filter(Boolean)
+    .join('\n');
 
   document.getElementById('output').textContent = prompt;
 
