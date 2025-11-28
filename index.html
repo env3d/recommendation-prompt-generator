@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recommendation Letter Prompt Generator</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 2rem;
+    background-color: #f7f7f7;
+  }
+  label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: bold;
+  }
+  input, textarea, select {
+    width: 100%;
+    padding: 0.5rem;
+    margin-top: 0.25rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+  }
+  button {
+    margin-top: 1.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 5px;
+    background-color: #007acc;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #005f99;
+  }
+  #output {
+    margin-top: 2rem;
+    padding: 1rem;
+    background-color: #fff;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    border: 1px solid #ccc;
+  }
+</style>
+</head>
+<body>
+
+<h1>Recommendation Letter Prompt Generator</h1>
+
+<form id="recForm">
+  <label>Recommender Name
+    <input type="text" id="recommenderName" required>
+  </label>
+
+  <label>Position / Role
+    <input type="text" id="position" required>
+  </label>
+
+  <label>Institution / Organization
+    <input type="text" id="institution" required>
+  </label>
+
+  <label>Length of acquaintance
+    <input type="text" id="length" placeholder="e.g., 3 years" required>
+  </label>
+
+  <label>Context of interaction
+    <select id="interactionContext" multiple>
+      <option value="teaching">Teaching Colleague</option>
+      <option value="research">Worked on Project together</option>
+      <option value="mentorship">He was my mentor</option>
+      <option value="other">We collaborated in other ways</option>
+    </select>
+  </label>
+
+  <label>Notable qualities
+    <input type="text" id="qualities" placeholder="e.g., creativity, dedication" required>
+  </label>
+
+  <label>Greatest Strength
+    <input type="text" id="greatestStrength" placeholder="e.g., leadership, problem-solving" required>
+  </label>
+
+  <label>Recommendation strength
+    <select id="recommendationStrength">
+      <option value="without reservation">Without reservation</option>
+      <option value="strongly">Strongly</option>
+      <option value="enthusiastically">Enthusiastically</option>
+    </select>
+  </label>
+
+  <label>Additional Comments
+    <textarea id="additionalComments" rows="4" placeholder="Any additional remarks or context"></textarea>
+  </label>
+
+  <button type="button" onclick="generatePrompt()">Generate</button>
+  <button type="button" onclick="clearForm()">Clear All</button>
+</form>
+
+<div id="output"></div>
+<button id="copyButton" style="display: none;" onclick="copyToClipboard()">Copy</button>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Load saved data from local storage
+  loadFormData();
+});
+
+function saveFormData() {
+  const formData = {
+    recommenderName: document.getElementById('recommenderName').value,
+    position: document.getElementById('position').value,
+    institution: document.getElementById('institution').value,
+    length: document.getElementById('length').value,
+    interactionContext: Array.from(document.getElementById('interactionContext').selectedOptions).map(option => option.value),
+    qualities: document.getElementById('qualities').value,
+    greatestStrength: document.getElementById('greatestStrength').value,
+    recommendationStrength: document.getElementById('recommendationStrength').value,
+    additionalComments: document.getElementById('additionalComments').value,
+  };
+  localStorage.setItem('recommendationFormData', JSON.stringify(formData));
+}
+
+function loadFormData() {
+  const savedData = JSON.parse(localStorage.getItem('recommendationFormData'));
+  if (savedData) {
+    document.getElementById('recommenderName').value = savedData.recommenderName || '';
+    document.getElementById('position').value = savedData.position || '';
+    document.getElementById('institution').value = savedData.institution || '';
+    document.getElementById('length').value = savedData.length || '';
+    document.getElementById('qualities').value = savedData.qualities || '';
+    document.getElementById('greatestStrength').value = savedData.greatestStrength || '';
+    document.getElementById('recommendationStrength').value = savedData.recommendationStrength || '';
+    document.getElementById('additionalComments').value = savedData.additionalComments || '';
+
+    const interactionContext = document.getElementById('interactionContext');
+    Array.from(interactionContext.options).forEach(option => {
+      option.selected = savedData.interactionContext.includes(option.value);
+    });
+  }
+}
+
+function clearForm() {
+  document.getElementById('recForm').reset();
+  localStorage.removeItem('recommendationFormData');
+  document.getElementById('output').textContent = '';
+  document.getElementById('copyButton').style.display = 'none';
+}
+
+function generatePrompt() {
+  saveFormData(); // Save form data to local storage
+
+  const getSelectedValues = (id) => {
+    const options = document.getElementById(id).selectedOptions;
+    return Array.from(options).map(option => option.value).join(', ');
+  };
+
+  const prompt = `Prompt for LLM: Generate a recommendation letter for Jason Madar using the information below. Make it professional, enthusiastic, and well-structured.\n
+Information to include:\n
+Recommender Details:\n
+  * Name: ${document.getElementById('recommenderName').value}
+  * Position / Role: ${document.getElementById('position').value}
+  * Institution / Organization: ${document.getElementById('institution').value}\n
+Relationship with Jason:\n
+  * Length of acquaintance: ${document.getElementById('length').value}
+  * Context of interaction: ${getSelectedValues('interactionContext')}\n
+Personal Qualities / Strengths:\n
+  * Notable qualities: ${document.getElementById('qualities').value}
+  * Greatest strength: ${document.getElementById('greatestStrength').value}\n
+Overall Assessment / Recommendation:\n
+  * Recommendation strength: ${document.getElementById('recommendationStrength').value}\n
+Additional Comments:\n
+  ${document.getElementById('additionalComments').value}\n
+Instruction to LLM: Compose a formal recommendation letter incorporating all the above details. Ensure it flows naturally, is enthusiastic without exaggeration, and is suitable for academic or professional contexts.`;
+
+  document.getElementById('output').textContent = prompt;
+
+  // Show the copy button
+  document.getElementById('copyButton').style.display = 'block';
+}
+
+function copyToClipboard() {
+  const output = document.getElementById('output').textContent;
+  navigator.clipboard.writeText(output).then(() => {
+    alert('Text copied to clipboard!');
+  }).catch(err => {
+    console.error('Failed to copy text: ', err);
+  });
+}
+</script>
+
+</body>
+</html>
